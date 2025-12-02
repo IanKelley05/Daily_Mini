@@ -351,8 +351,10 @@
                     const input = document.createElement('input');
                     input.type = 'text';
                     input.maxLength = 1;
+                    
+                    // Events
+                    input.addEventListener('mousedown', (e) => handleMousedown(r, c, e));
                     input.addEventListener('focus', () => handleFocus(r, c));
-                    input.addEventListener('click', (e) => handleClick(r, c, e));
                     input.addEventListener('keydown', (e) => handleKey(r, c, e));
                     input.addEventListener('input', (e) => handleInput(r, c, e));
                     cellDiv.appendChild(input);
@@ -418,21 +420,28 @@
     }
 
     function handleFocus(r, c) {
-        // If focusing via tab or click, we just update selection visual
+        // Focus usually fires after mousedown, but NOT if already focused.
         selectedCell = { r, c };
         highlightGrid();
     }
 
-    function handleClick(r, c, e) {
-        // Logic: If clicking the EXACT SAME cell, toggle direction.
-        // If clicking a different cell, KEEP current direction.
+    function handleMousedown(r, c, e) {
+        // This fires BEFORE focus.
         if (selectedCell.r === r && selectedCell.c === c) {
+            // User clicked the cell they are ALREADY on -> Toggle Direction
             currentDirection = currentDirection === 'across' ? 'down' : 'across';
+            
+            // CRITICAL FIX: Force update immediately. 
+            // If we don't do this, 'focus' won't fire (since we are already focused)
+            // and the UI will look "stuck" until the next click.
+            highlightGrid();
         } else {
+            // User clicked a new cell -> Just select it, keep direction
             selectedCell = { r, c };
-            // Do NOT change currentDirection here, maintaining rotation
+            // Highlight immediately for snappiness
+            highlightGrid();
         }
-        highlightGrid();
+        // We allow default behavior so the input gets focus
     }
 
     function handleInput(r, c, e) {
@@ -443,7 +452,6 @@
         input.classList.remove('wrong');
 
         if (val) {
-            // New Smart Skip Logic
             smartAdvanceCursor(r, c);
         }
         checkWin();
@@ -455,7 +463,6 @@
             input.classList.remove('wrong');
             
             if (input.value === '') {
-                // Move back one step
                 moveBack(r, c);
                 e.preventDefault();
             } else {
@@ -470,7 +477,6 @@
         }
     }
 
-    // Move logic for arrows
     function moveSelection(dr, dc) {
         let nr = selectedCell.r + dr;
         let nc = selectedCell.c + dc;
@@ -481,7 +487,6 @@
         }
     }
 
-    // Backspace logic (simple step back)
     function moveBack(r, c) {
         let nr = r;
         let nc = c;
@@ -490,7 +495,6 @@
 
         if (nr >= 0 && nr < 5 && nc >= 0 && nc < 5) {
              if (PUZZLE_DATA.grid[nr][nc] !== '.') {
-                 // Clear previous if we moved back
                  const prev = getInput(nr, nc);
                  if(prev) {
                     prev.value = '';
@@ -501,33 +505,23 @@
         }
     }
 
-    // SMART SKIP Logic
     function smartAdvanceCursor(r, c) {
         let currR = r;
         let currC = c;
         
-        // Loop to find next empty spot in current word
         while(true) {
             if (currentDirection === 'across') currC++;
             else currR++;
 
-            // 1. Check Bounds
             if (currR >= 5 || currC >= 5 || currR < 0 || currC < 0) break; 
-            
-            // 2. Check Black Cell (End of word)
             if (PUZZLE_DATA.grid[currR][currC] === '.') break;
 
-            // 3. Check if empty
             const input = getInput(currR, currC);
             if (input && input.value === '') {
                 selectCell(currR, currC);
-                return; // Found our spot, jump there
+                return; 
             }
-            
-            // If full, loop continues to next cell (skipping it)
         }
-        // If we exit loop, it means we hit end of word without finding empty spot.
-        // As requested: "Simply stay where you are".
     }
 
     function selectCell(r, c) {
@@ -597,7 +591,6 @@
     }
 
     function focusClueCell(num, dir) {
-        // Find cell with this number
         for(let r=0; r<5; r++) {
             for(let c=0; c<5; c++) {
                 if (getNumberForCell(r, c) === num) {
