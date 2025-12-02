@@ -6,7 +6,8 @@
     <title>The Daily Mini</title>
     <style>
         :root {
-            --cell-size: 50px;
+            /* 1. INCREASED SIZE HERE */
+            --cell-size: 75px; 
             --highlight-blue: #A7D8FF;
             --selected-yellow: #FFDA00;
             --black-cell: #000000;
@@ -54,7 +55,7 @@
             align-items: center;
             padding: 20px;
             width: 100%;
-            max-width: 600px;
+            max-width: 800px; /* Increased max width to accommodate larger grid */
             box-sizing: border-box;
         }
 
@@ -64,7 +65,7 @@
             grid-template-rows: repeat(5, var(--cell-size));
             gap: 0;
             border: 2px solid var(--black-cell);
-            margin-bottom: 15px;
+            margin-bottom: 20px;
             background: var(--black-cell);
         }
 
@@ -77,7 +78,7 @@
             display: flex;
             justify-content: center;
             align-items: center;
-            font-size: 24px;
+            font-size: 32px; /* Increased font size */
             font-weight: bold;
             text-transform: uppercase;
             cursor: pointer;
@@ -89,7 +90,7 @@
             height: 100%;
             border: none;
             text-align: center;
-            font-size: 24px;
+            font-size: 32px; /* Increased font size */
             font-weight: bold;
             text-transform: uppercase;
             background: transparent;
@@ -109,9 +110,9 @@
 
         .cell-number {
             position: absolute;
-            top: 2px;
-            left: 2px;
-            font-size: 10px;
+            top: 4px;
+            left: 4px;
+            font-size: 14px; /* Slightly larger numbers */
             font-weight: normal;
             pointer-events: none;
         }
@@ -133,15 +134,15 @@
         #toolbar {
             display: flex;
             gap: 10px;
-            margin-bottom: 20px;
+            margin-bottom: 25px;
         }
 
         .action-btn {
             background: white;
             border: 1px solid #ccc;
-            padding: 8px 12px;
-            font-size: 0.8rem;
-            border-radius: 15px;
+            padding: 10px 15px;
+            font-size: 0.9rem;
+            border-radius: 20px;
             cursor: pointer;
             font-weight: bold;
             color: #333;
@@ -156,7 +157,7 @@
             width: 100%;
             display: flex;
             justify-content: space-between;
-            max-width: 400px;
+            max-width: 500px; /* Wider clues area */
         }
 
         .clue-column {
@@ -176,13 +177,13 @@
             list-style: none;
             padding: 0;
             margin: 0;
-            font-size: 0.9rem;
+            font-size: 1rem; /* Slightly larger text */
         }
 
         .clue-item {
-            margin-bottom: 8px;
+            margin-bottom: 10px;
             cursor: pointer;
-            line-height: 1.3;
+            line-height: 1.4;
         }
 
         .clue-item.active-clue {
@@ -230,7 +231,11 @@
 
         @media (max-width: 600px) {
             :root {
-                --cell-size: 13vw;
+                /* Larger mobile size */
+                --cell-size: 17vw; 
+            }
+            .cell, .cell input {
+                font-size: 26px;
             }
             #clues {
                 flex-direction: column;
@@ -420,28 +425,18 @@
     }
 
     function handleFocus(r, c) {
-        // Focus usually fires after mousedown, but NOT if already focused.
         selectedCell = { r, c };
         highlightGrid();
     }
 
     function handleMousedown(r, c, e) {
-        // This fires BEFORE focus.
         if (selectedCell.r === r && selectedCell.c === c) {
-            // User clicked the cell they are ALREADY on -> Toggle Direction
             currentDirection = currentDirection === 'across' ? 'down' : 'across';
-            
-            // CRITICAL FIX: Force update immediately. 
-            // If we don't do this, 'focus' won't fire (since we are already focused)
-            // and the UI will look "stuck" until the next click.
             highlightGrid();
         } else {
-            // User clicked a new cell -> Just select it, keep direction
             selectedCell = { r, c };
-            // Highlight immediately for snappiness
             highlightGrid();
         }
-        // We allow default behavior so the input gets focus
     }
 
     function handleInput(r, c, e) {
@@ -470,6 +465,30 @@
             }
         } else if (e.key.startsWith('Arrow')) {
             e.preventDefault();
+            
+            // 2. NEW ARROW KEY LOGIC
+            
+            // If trying to move Vertically...
+            if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+                if (currentDirection === 'across') {
+                    // Pivot to DOWN, but don't move yet
+                    currentDirection = 'down';
+                    highlightGrid();
+                    return;
+                }
+            }
+
+            // If trying to move Horizontally...
+            if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+                if (currentDirection === 'down') {
+                    // Pivot to ACROSS, but don't move yet
+                    currentDirection = 'across';
+                    highlightGrid();
+                    return;
+                }
+            }
+
+            // If we are already in the correct direction, or just switched, allow movement
             if (e.key === 'ArrowRight') moveSelection(0, 1);
             if (e.key === 'ArrowLeft') moveSelection(0, -1);
             if (e.key === 'ArrowUp') moveSelection(-1, 0);
