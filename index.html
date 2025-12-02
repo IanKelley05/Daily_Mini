@@ -11,6 +11,7 @@
             --selected-yellow: #FFDA00;
             --black-cell: #000000;
             --border-color: #333;
+            --wrong-color: #e00;
         }
 
         body {
@@ -47,7 +48,6 @@
             font-size: 0.9rem;
         }
 
-        /* Game Container */
         #game-container {
             display: flex;
             flex-direction: column;
@@ -58,14 +58,13 @@
             box-sizing: border-box;
         }
 
-        /* Grid Styling */
         #grid {
             display: grid;
             grid-template-columns: repeat(5, var(--cell-size));
             grid-template-rows: repeat(5, var(--cell-size));
             gap: 0;
             border: 2px solid var(--black-cell);
-            margin-bottom: 20px;
+            margin-bottom: 15px;
             background: var(--black-cell);
         }
 
@@ -100,10 +99,14 @@
             color: black;
             font-family: inherit;
             cursor: pointer;
-            caret-color: transparent; /* Hide text cursor to look like real game */
+            caret-color: transparent; 
         }
 
-        /* Number labels in cells */
+        .cell input.wrong {
+            color: var(--wrong-color);
+            text-decoration: line-through;
+        }
+
         .cell-number {
             position: absolute;
             top: 2px;
@@ -119,7 +122,6 @@
             pointer-events: none;
         }
 
-        /* Highlighting Logic */
         .cell.highlight-word {
             background-color: var(--highlight-blue);
         }
@@ -127,27 +129,29 @@
         .cell.selected {
             background-color: var(--selected-yellow) !important;
         }
-        
-        /* Incorrect animation */
-        .shake {
-            animation: shake 0.5s;
+
+        #toolbar {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
         }
 
-        @keyframes shake {
-            0% { transform: translate(1px, 1px) rotate(0deg); }
-            10% { transform: translate(-1px, -2px) rotate(-1deg); }
-            20% { transform: translate(-3px, 0px) rotate(1deg); }
-            30% { transform: translate(3px, 2px) rotate(0deg); }
-            40% { transform: translate(1px, -1px) rotate(1deg); }
-            50% { transform: translate(-1px, 2px) rotate(-1deg); }
-            60% { transform: translate(-3px, 1px) rotate(0deg); }
-            70% { transform: translate(3px, 1px) rotate(-1deg); }
-            80% { transform: translate(-1px, -1px) rotate(1deg); }
-            90% { transform: translate(1px, 2px) rotate(0deg); }
-            100% { transform: translate(1px, -2px) rotate(-1deg); }
+        .action-btn {
+            background: white;
+            border: 1px solid #ccc;
+            padding: 8px 12px;
+            font-size: 0.8rem;
+            border-radius: 15px;
+            cursor: pointer;
+            font-weight: bold;
+            color: #333;
+            transition: background 0.2s;
         }
 
-        /* Clues Section */
+        .action-btn:hover {
+            background: #eee;
+        }
+
         #clues {
             width: 100%;
             display: flex;
@@ -191,7 +195,6 @@
             margin-right: 5px;
         }
 
-        /* Modal for Win */
         #modal-overlay {
             display: none;
             position: fixed;
@@ -214,10 +217,6 @@
             max-width: 80%;
         }
 
-        #modal h2 {
-            margin-top: 0;
-        }
-
         button.btn-primary {
             background: black;
             color: white;
@@ -229,10 +228,9 @@
             margin-top: 15px;
         }
 
-        /* Mobile Adjustments */
         @media (max-width: 600px) {
             :root {
-                --cell-size: 13vw; /* Responsive grid size */
+                --cell-size: 13vw;
             }
             #clues {
                 flex-direction: column;
@@ -240,16 +238,6 @@
             .clue-column {
                 width: 100%;
                 margin-bottom: 20px;
-            }
-            /* On mobile, show only the active clue bar above keyboard if complex, 
-               but for simplicity we stick to standard layout */
-            #current-clue-bar {
-                background: #A7D8FF;
-                width: 100%;
-                padding: 10px;
-                text-align: center;
-                font-weight: bold;
-                display: none; /* Can be toggled for mobile specific view */
             }
         }
     </style>
@@ -263,6 +251,12 @@
 
 <div id="game-container">
     <div id="grid"></div>
+
+    <div id="toolbar">
+        <button class="action-btn" onclick="checkSquare()">Check Square</button>
+        <button class="action-btn" onclick="checkWord()">Check Word</button>
+        <button class="action-btn" onclick="checkGrid()">Check Puzzle</button>
+    </div>
 
     <div id="clues">
         <div class="clue-column">
@@ -285,9 +279,7 @@
 </div>
 
 <script>
-    // --- EDIT THIS SECTION TO CHANGE THE PUZZLE ---
-    // 5x5 Grid. Use '.' for black squares.
-    // Ensure letters match the clues!
+    // --- PUZZLE DATA ---
     const PUZZLE_DATA = {
         grid: [
             ['H', 'E', 'A', 'R', 'T'],
@@ -313,7 +305,6 @@
             ]
         }
     };
-    // ----------------------------------------------
 
     const gridEl = document.getElementById('grid');
     const acrossList = document.getElementById('across-clues');
@@ -322,18 +313,18 @@
     const modal = document.getElementById('modal-overlay');
     const finalTimeSpan = document.getElementById('final-time');
 
-    let currentDirection = 'across'; // or 'down'
+    // State
+    let currentDirection = 'across'; 
     let selectedCell = { r: 0, c: 0 };
     let timerInterval;
     let seconds = 0;
     let isSolved = false;
 
-    // Initialize Game
     function init() {
         buildGrid();
         renderClues();
         startTimer();
-        selectCell(0, 0); // Start at top left
+        selectCell(0, 0);
     }
 
     function buildGrid() {
@@ -350,7 +341,6 @@
                 if (letter === '.') {
                     cellDiv.classList.add('black');
                 } else {
-                    // Add Number Label if it exists
                     const num = getNumberForCell(r, c);
                     if (num) {
                         const numSpan = document.createElement('span');
@@ -358,8 +348,6 @@
                         numSpan.innerText = num;
                         cellDiv.appendChild(numSpan);
                     }
-
-                    // Input element
                     const input = document.createElement('input');
                     input.type = 'text';
                     input.maxLength = 1;
@@ -375,22 +363,12 @@
     }
 
     function getNumberForCell(r, c) {
-        // Simple logic: if left or top is edge or black, and current is not black, it needs a number
-        // In a real generator, this would be computed. For this static puzzle, we match the clues.
-        // We will scan clues to find which number corresponds to this cell.
-        // But for simplicity in this template, we check if it starts a word.
-        
-        // This is a helper to map standard crossword numbering logic
-        let num = 0;
-        // This logic calculates numbering dynamically based on standard rules
         let count = 1;
         for(let i=0; i<5; i++) {
             for(let j=0; j<5; j++) {
                 if(PUZZLE_DATA.grid[i][j] === '.') continue;
-                
                 let startAcross = (j===0 || PUZZLE_DATA.grid[i][j-1] === '.');
                 let startDown = (i===0 || PUZZLE_DATA.grid[i-1][j] === '.');
-                
                 if(startAcross || startDown) {
                     if(i === r && j === c) return count;
                     count++;
@@ -401,7 +379,6 @@
     }
 
     function renderClues() {
-        // Render Across
         PUZZLE_DATA.clues.across.forEach(clue => {
             const li = document.createElement('li');
             li.className = 'clue-item';
@@ -414,7 +391,6 @@
             acrossList.appendChild(li);
         });
 
-        // Render Down
         PUZZLE_DATA.clues.down.forEach(clue => {
             const li = document.createElement('li');
             li.className = 'clue-item';
@@ -428,7 +404,6 @@
         });
     }
 
-    // Timer Logic
     function startTimer() {
         timerInterval = setInterval(() => {
             seconds++;
@@ -442,20 +417,20 @@
         clearInterval(timerInterval);
     }
 
-    // Interaction Logic
     function handleFocus(r, c) {
-        // Just visual update usually handled by click/key, but ensures state matches
+        // If focusing via tab or click, we just update selection visual
         selectedCell = { r, c };
         highlightGrid();
     }
 
     function handleClick(r, c, e) {
-        // e.stopPropagation();
+        // Logic: If clicking the EXACT SAME cell, toggle direction.
+        // If clicking a different cell, KEEP current direction.
         if (selectedCell.r === r && selectedCell.c === c) {
-            // Toggle direction if clicking same cell
             currentDirection = currentDirection === 'across' ? 'down' : 'across';
         } else {
             selectedCell = { r, c };
+            // Do NOT change currentDirection here, maintaining rotation
         }
         highlightGrid();
     }
@@ -463,11 +438,13 @@
     function handleInput(r, c, e) {
         const val = e.target.value.toUpperCase();
         const input = getInput(r, c);
-        input.value = val; // Force upper
+        input.value = val;
+        
+        input.classList.remove('wrong');
 
         if (val) {
-            // Move forward
-            moveCursor(r, c, 1);
+            // New Smart Skip Logic
+            smartAdvanceCursor(r, c);
         }
         checkWin();
     }
@@ -475,13 +452,12 @@
     function handleKey(r, c, e) {
         if (e.key === 'Backspace') {
             const input = getInput(r, c);
+            input.classList.remove('wrong');
+            
             if (input.value === '') {
-                // Move back and delete
-                moveCursor(r, c, -1);
-                // Prevent default backspace nav
+                // Move back one step
+                moveBack(r, c);
                 e.preventDefault();
-                const prevInput = getInput(selectedCell.r, selectedCell.c);
-                if(prevInput) prevInput.value = '';
             } else {
                 input.value = '';
             }
@@ -494,11 +470,10 @@
         }
     }
 
+    // Move logic for arrows
     function moveSelection(dr, dc) {
         let nr = selectedCell.r + dr;
         let nc = selectedCell.c + dc;
-        
-        // Bounds check
         if (nr >= 0 && nr < 5 && nc >= 0 && nc < 5) {
             if (PUZZLE_DATA.grid[nr][nc] !== '.') {
                 selectCell(nr, nc);
@@ -506,30 +481,53 @@
         }
     }
 
-    function moveCursor(r, c, step) {
+    // Backspace logic (simple step back)
+    function moveBack(r, c) {
+        let nr = r;
+        let nc = c;
+        if (currentDirection === 'across') nc--;
+        else nr--;
+
+        if (nr >= 0 && nr < 5 && nc >= 0 && nc < 5) {
+             if (PUZZLE_DATA.grid[nr][nc] !== '.') {
+                 // Clear previous if we moved back
+                 const prev = getInput(nr, nc);
+                 if(prev) {
+                    prev.value = '';
+                    prev.classList.remove('wrong');
+                    selectCell(nr, nc);
+                 }
+             }
+        }
+    }
+
+    // SMART SKIP Logic
+    function smartAdvanceCursor(r, c) {
         let currR = r;
         let currC = c;
-        let found = false;
         
-        // Safety break
-        let loopCount = 0;
+        // Loop to find next empty spot in current word
+        while(true) {
+            if (currentDirection === 'across') currC++;
+            else currR++;
 
-        while (!found && loopCount < 10) {
-            if (currentDirection === 'across') {
-                currC += step;
-            } else {
-                currR += step;
+            // 1. Check Bounds
+            if (currR >= 5 || currC >= 5 || currR < 0 || currC < 0) break; 
+            
+            // 2. Check Black Cell (End of word)
+            if (PUZZLE_DATA.grid[currR][currC] === '.') break;
+
+            // 3. Check if empty
+            const input = getInput(currR, currC);
+            if (input && input.value === '') {
+                selectCell(currR, currC);
+                return; // Found our spot, jump there
             }
             
-            // Check bounds
-            if (currR < 0 || currR >= 5 || currC < 0 || currC >= 5) break;
-
-            if (PUZZLE_DATA.grid[currR][currC] !== '.') {
-                selectCell(currR, currC);
-                found = true;
-            }
-            loopCount++;
+            // If full, loop continues to next cell (skipping it)
         }
+        // If we exit loop, it means we hit end of word without finding empty spot.
+        // As requested: "Simply stay where you are".
     }
 
     function selectCell(r, c) {
@@ -546,24 +544,19 @@
         return cell ? cell.querySelector('input') : null;
     }
 
-    // Highlighting
     function highlightGrid() {
-        // Clear all
         document.querySelectorAll('.cell').forEach(c => {
             c.classList.remove('selected', 'highlight-word');
         });
         document.querySelectorAll('.clue-item').forEach(c => c.classList.remove('active-clue'));
 
-        // Highlight selected
         const cell = document.querySelector(`.cell[data-r="${selectedCell.r}"][data-c="${selectedCell.c}"]`);
         if (cell) cell.classList.add('selected');
 
-        // Highlight Word and Clue
         highlightWordAndClue(selectedCell.r, selectedCell.c);
     }
 
     function highlightWordAndClue(r, c) {
-        // Find start of word
         let startR = r;
         let startC = c;
 
@@ -571,14 +564,12 @@
             while (startC > 0 && PUZZLE_DATA.grid[startR][startC - 1] !== '.') {
                 startC--;
             }
-            // Highlight row
             let iterC = startC;
             while (iterC < 5 && PUZZLE_DATA.grid[startR][iterC] !== '.') {
                 const hCell = document.querySelector(`.cell[data-r="${startR}"][data-c="${iterC}"]`);
                 if(hCell) hCell.classList.add('highlight-word');
                 iterC++;
             }
-            // Find Clue Number
             const num = getNumberForCell(startR, startC);
             if(num) highlightClue(num, 'across');
 
@@ -586,7 +577,6 @@
             while (startR > 0 && PUZZLE_DATA.grid[startR - 1][startC] !== '.') {
                 startR--;
             }
-            // Highlight col
             let iterR = startR;
             while (iterR < 5 && PUZZLE_DATA.grid[iterR][startC] !== '.') {
                 const hCell = document.querySelector(`.cell[data-r="${iterR}"][data-c="${startC}"]`);
@@ -618,6 +608,58 @@
         }
     }
 
+    function validateCell(r, c) {
+        const input = getInput(r, c);
+        if (!input || input.value === '') return;
+        
+        const correctLetter = PUZZLE_DATA.grid[r][c];
+        if (input.value.toUpperCase() !== correctLetter) {
+            input.classList.add('wrong');
+        } else {
+            input.classList.remove('wrong'); 
+        }
+    }
+
+    function checkSquare() {
+        validateCell(selectedCell.r, selectedCell.c);
+        const input = getInput(selectedCell.r, selectedCell.c);
+        if(input) input.focus();
+    }
+
+    function checkWord() {
+        let r = selectedCell.r;
+        let c = selectedCell.c;
+        
+        if (currentDirection === 'across') {
+            while (c > 0 && PUZZLE_DATA.grid[r][c - 1] !== '.') c--;
+            while (c < 5 && PUZZLE_DATA.grid[r][c] !== '.') {
+                validateCell(r, c);
+                c++;
+            }
+        } else {
+            while (r > 0 && PUZZLE_DATA.grid[r - 1][c] !== '.') r--;
+            while (r < 5 && PUZZLE_DATA.grid[r][c] !== '.') {
+                validateCell(r, c);
+                r++;
+            }
+        }
+        
+        const input = getInput(selectedCell.r, selectedCell.c);
+        if(input) input.focus();
+    }
+
+    function checkGrid() {
+        for(let r=0; r<5; r++) {
+            for(let c=0; c<5; c++) {
+                if(PUZZLE_DATA.grid[r][c] !== '.') {
+                    validateCell(r, c);
+                }
+            }
+        }
+        const input = getInput(selectedCell.r, selectedCell.c);
+        if(input) input.focus();
+    }
+
     function checkWin() {
         if (isSolved) return;
         
@@ -644,25 +686,16 @@
             finalTimeSpan.innerText = timerEl.innerText;
             setTimeout(() => {
                 modal.style.display = 'flex';
-                // Trigger confetti or simple animation could go here
             }, 500);
-        } else if (filled && !correct) {
-            // Optional: Shake animation if full but wrong?
-            // Currently we just wait for user to fix it (NYT style)
-            // But let's add a visual cue that it's full but wrong? 
-            // NYT doesn't actually tell you until you check, but on the mini it sometimes auto-checks.
-            // We will leave it silent to not be annoying, or user can assume if no modal, it's wrong.
         }
     }
 
     function closeModal() {
         modal.style.display = 'none';
-        // Reset logic could go here
         location.reload();
     }
 
     init();
-
 </script>
 
 </body>
