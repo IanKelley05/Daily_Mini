@@ -6,7 +6,6 @@ Online
   (https://iankelley05.github.io/Daily_Mini/)
 
 Locally
-  
   Clone this repository or download the index.html file.
   Open index.html in any web browser.
   Start solving!
@@ -24,6 +23,7 @@ Helper Tools:
   Mobile Friendly: Works perfectly on phones with touch-optimized grids.
 
 How to Customize the Puzzle
+
   You can change the words and clues daily by editing the PUZZLE_DATA object inside index.html.
   Open index.html in a text editor (VS Code, Notepad, etc.).
   Scroll down to the <script> section (approx. line 320).
