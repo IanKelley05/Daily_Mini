@@ -6,20 +6,27 @@ Online
   (https://iankelley05.github.io/Daily_Mini/)
 
 Locally
+  
   Clone this repository or download the index.html file.
+  
   Open index.html in any web browser.
+
   Start solving!
 
 Features
 
   Authentic Feel: Keyboard navigation behaves just like the real app (arrow keys to move, space bar to toggle direction).
+  
   Smart Navigation: The cursor automatically skips over filled squares and jumps to the next word.
 
 Helper Tools:
 
   Check: Verify a square, word, or the entire grid (incorrect letters turn red).
+  
   Reveal: Give up? Reveal a square or word (revealed letters turn green).
+  
   Timer: Tracks how fast you can solve today's puzzle.
+  
   Mobile Friendly: Works perfectly on phones with touch-optimized grids.
 
 How to Customize the Puzzle
@@ -57,7 +64,11 @@ Save the file and push your changes to GitHub to update the live site!
 Deployment
   
   This project is designed to be hosted for free on GitHub Pages.
+  
   Push index.html to a public GitHub repository.
+  
   Go to Settings > Pages.
+  
   Select the main branch and click Save.
+  
   Your game will be live in a few minutes!
